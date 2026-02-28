@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { cache } from "@/lib/cache";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -12,6 +11,14 @@ function getTokenFromRequest(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const [{ prisma }, authLib, cacheLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/cache"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { cache } = cacheLib;
+
   const token = getTokenFromRequest(req);
 
   if (!token) {
