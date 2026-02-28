@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Run Supabase E2E test
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Supabase E2E
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_e2e == 'true') || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) }}
+        env:
+          DATABASE_URL: ${{ secrets.CI_DATABASE_URL }}
+          JWT_SECRET: ci-jwt-secret
+          DEMO_MODE: true
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "CI_DATABASE_URL tanımlı değil, Supabase E2E adımı atlanıyor."
+            exit 0
+          fi
+          npm run e2e:supabase

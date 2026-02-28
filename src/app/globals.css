@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --neon-cyan: #00f0ff;
+  --neon-orange: #ff6b00;
+  --neon-trust: #00ff9d;
 }
 
 @theme inline {
@@ -23,4 +26,115 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.tooltip-fade {
+  animation: tooltipFade 1.5s ease forwards;
+}
+
+.ripple-effect {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0) 65%);
+  animation: ripplePulse 0.6s ease-out;
+  pointer-events: none;
+}
+
+.winner-badge-pop {
+  animation: winnerPop 1.4s ease-in-out infinite;
+}
+
+.heart-burst {
+  animation: heartBurst 0.65s ease-out forwards;
+}
+
+.star-pop {
+  animation: starPop 1s ease-in-out infinite;
+}
+
+@keyframes tooltipFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes ripplePulse {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes winnerPop {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 rgba(0, 255, 157, 0);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 22px rgba(0, 255, 157, 0.35);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 rgba(0, 255, 157, 0);
+  }
+}
+
+@keyframes heartBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(2px);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.1) translateY(-4px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4) translateY(-14px);
+  }
+}
+
+@keyframes starPop {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

@@ -1,25 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getAiSuggestion } from "@/lib/data";
-import { AiSuggestionInput } from "@/domain/models";
+import type { ServiceCategoryId } from "@/domain/models";
+
+const SERVICE_CATEGORY_IDS: ServiceCategoryId[] = [
+  "ev-aletleri",
+  "endustriyel",
+  "hukuk",
+  "cekici",
+  "ev-temizlik",
+  "hali-yikama",
+  "elektrikci",
+  "tesisatci",
+];
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as AiSuggestionInput | null;
+  const suggestSchema = z.object({
+    description: z
+      .string()
+      .min(1, { message: "description alanı zorunludur" }),
+    categoryId: z
+      .string()
+      .refine((value) => SERVICE_CATEGORY_IDS.includes(value as ServiceCategoryId), {
+        message: "Geçersiz kategori",
+      })
+      .optional(),
+    city: z.string().optional(),
+  });
 
-  if (!body || !body.description?.trim()) {
+  const body = await req.json().catch(() => null);
+
+  const parsed = suggestSchema.safeParse(body);
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
     return NextResponse.json(
-      { error: "description alanı zorunludur" },
+      { error: issue?.message || "Geçersiz istek gövdesi" },
       { status: 400 },
     );
   }
 
   const result = getAiSuggestion({
-    description: body.description,
-    categoryId: body.categoryId,
-    city: body.city,
+    description: parsed.data.description,
+    categoryId: parsed.data.categoryId as ServiceCategoryId | undefined,
+    city: parsed.data.city,
   });
 
   return NextResponse.json({
     data: result,
   });
 }
-

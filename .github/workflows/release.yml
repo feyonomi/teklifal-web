@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Target deployment environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      run_offer_accept_smoke:
+        description: Run offer accept API smoke test
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  validate-release-config:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required deploy config
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/check-github-env.ps1 -Environments @("${{ inputs.target_environment }}")
+
+  release-readiness:
+    needs: validate-release-config
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Offer accept smoke (optional)
+        if: ${{ inputs.run_offer_accept_smoke == 'true' }}
+        env:
+          E2E_BASE_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+          SMOKE_BUYER_EMAIL: ${{ vars.SMOKE_BUYER_EMAIL }}
+          SMOKE_PROVIDER_EMAIL: ${{ vars.SMOKE_PROVIDER_EMAIL }}
+          SMOKE_BUYER_PASSWORD: ${{ secrets.SMOKE_BUYER_PASSWORD }}
+          SMOKE_PROVIDER_PASSWORD: ${{ secrets.SMOKE_PROVIDER_PASSWORD }}
+        run: npm run smoke:offer-accept
+
+      - name: Release gate passed
+        run: echo "Release gate passed for '${{ inputs.target_environment }}'."

@@ -1,36 +1,202 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TeklifAl Web
 
-## Getting Started
+Kurumsal teklif ve tedarikçi eşleştirme platformu (Next.js + Prisma).
 
-First, run the development server:
+## Lokal Geliştirme
+
+1. Ortam değişkenlerini oluştur:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Bağımlılıkları kur:
+
+```bash
+npm install
+```
+
+3. Prisma client üret:
+
+```bash
+npm run prisma:generate
+```
+
+4. Uygulamayı başlat:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production Build
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Kalıcı Staging Link (Vercel)
 
-## Learn More
+Ngrok yalnızca lokal sunucu açıkken çalışır. Bilgisayar kapalıyken de paylaşılabilir URL için Vercel staging kullan:
 
-To learn more about Next.js, take a look at the following resources:
+- Kurulum rehberi: `VERCEL_STAGING_SETUP.md`
+- Hızlı komutlar:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run vercel:login
+npm run vercel:link
+npm run vercel:deploy:staging
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Email Sistemi (GÖREV 4)
 
-## Deploy on Vercel
+- Sağlayıcı: Resend veya SendGrid (ENV ile seçilir)
+- Ortam değişkenleri:
+  - `EMAIL_PROVIDER=resend` veya `EMAIL_PROVIDER=sendgrid`
+  - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+  - `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
+  - Opsiyonel: `EMAIL_SMOKE_TO` (smoke test için hedef adres)
+- Smoke testi:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run email:smoke
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Sağlayıcı yapılandırılmamışsa veya `EMAIL_SMOKE_TO` boşsa script testi atlar.
+
+## Gerçek Zamanlı Mesajlaşma (GÖREV 6)
+
+- Teknoloji: Server-Sent Events (SSE) + Redis Pub/Sub
+- Kanal standardı: `job:{jobId}:messages`
+- Ortam değişkenleri:
+  - `REDIS_URL` (zorunlu)
+- Davranış:
+  - `/api/jobs/[id]/messages/stream` endpoint’i Bearer token ile korunur.
+  - Sadece ilgili işin buyer/provider kullanıcıları abone olabilir.
+  - Mesaj oluşturulduğunda `/api/jobs/[id]/messages` POST içinde aynı kanala publish edilir.
+  - Redis yoksa stream 503 döner ve ana iş akışları etkilenmez.
+
+## Supabase E2E Bağlantı Testi
+
+```bash
+npm run e2e:supabase
+```
+
+## Önemli Not (Windows Path)
+
+Turbopack bazı sürümlerde Türkçe karakter içeren klasör yollarında hata verebilir.
+Projeyi mümkünse ASCII karakterli bir klasöre taşıyın (ör. `C:\projects\teklifal\web`).
+
+## Canlıya Çıkış Öncesi Kontrol Listesi
+
+- [ ] `DATABASE_URL` production PostgreSQL bağlantısına taşındı
+- [ ] `JWT_SECRET` güçlü bir sır ile değiştirildi
+- [ ] `DEMO_MODE=false` üretimde doğrulandı
+- [ ] CI pipeline yeşil (`lint`, `typecheck`, `build`)
+- [ ] KVKK / Gizlilik / Kullanım Şartları metinleri hukuk onayından geçti
+- [ ] Yedekleme, loglama ve alarm mekanizmaları aktif
+
+## CI
+
+GitHub Actions iş akışı: `.github/workflows/ci.yml`
+
+Çalıştırılan adımlar:
+
+- `npm ci`
+- `npm run prisma:generate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- `npm run e2e:supabase` (yalnızca `main/master` push veya manuel çalıştırmada `run_e2e=true` + `CI_DATABASE_URL` secret varsa)
+
+Gerekli GitHub Actions secret:
+
+- `CI_DATABASE_URL`: Supabase PostgreSQL bağlantı adresi
+
+Manuel çalıştırma:
+
+- GitHub > Actions > `CI` > `Run workflow` > `run_e2e=true` seç
+
+Environment kontrol scripti (staging/production):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\check-github-env.ps1
+```
+
+Kısa yol (npm script):
+
+```bash
+npm run check:github-env
+```
+
+Opsiyonel repo parametresi:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\check-github-env.ps1 -Repo owner/repo
+```
+
+`gh` CLI kurulum (gerekli):
+
+```powershell
+winget install --id GitHub.cli -e
+```
+
+Alternatifler:
+
+```powershell
+choco install gh
+```
+
+```bash
+brew install gh
+sudo apt install gh
+```
+
+## Doğrulama Akışları
+
+Auth smoke (register/verify/login/me/reset):
+
+```bash
+npm run smoke:auth
+```
+
+İş/Teklif/Mesaj core e2e:
+
+```bash
+npm run e2e:core
+```
+
+Staging smoke (mevcut doğrulanmış hesaplarla):
+
+```bash
+E2E_BASE_URL=https://staging.example.com \
+SMOKE_BUYER_EMAIL=... \
+SMOKE_BUYER_PASSWORD=... \
+SMOKE_PROVIDER_EMAIL=... \
+SMOKE_PROVIDER_PASSWORD=... \
+SMOKE_WRITE=true \
+npm run smoke:staging
+```
+
+Baseline performans ölçümü:
+
+```bash
+PERF_BASE_URL=http://localhost:3000 PERF_REQUESTS=200 PERF_CONCURRENCY=20 npm run perf:baseline
+```
+
+Offer accept API smoke:
+
+```bash
+E2E_BASE_URL=https://staging.example.com \
+SMOKE_BUYER_EMAIL=... \
+SMOKE_BUYER_PASSWORD=... \
+SMOKE_PROVIDER_EMAIL=... \
+SMOKE_PROVIDER_PASSWORD=... \
+npm run smoke:offer-accept
+```
+
+Release workflow içinde opsiyonel smoke çalıştırmak için environment değerleri:
+
+- Variables: `SMOKE_BUYER_EMAIL`, `SMOKE_PROVIDER_EMAIL`
+- Secrets: `SMOKE_BUYER_PASSWORD`, `SMOKE_PROVIDER_PASSWORD`

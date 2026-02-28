@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://teklifal.com"),
   title: "TeklifAl B2B • Yapay zeka destekli teklif platformu",
   description:
     "Armut mantığında, tamamen B2B odaklı, yapay zeka destekli teklif ve tedarikçi eşleştirme platformu.",
@@ -24,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

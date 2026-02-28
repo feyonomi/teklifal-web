@@ -1,12 +1,14 @@
 export type UserRole = "buyer" | "provider";
 
 export type ServiceCategoryId =
-  | "tadilat"
-  | "nakliye"
-  | "temizlik"
-  | "beyaz-esya"
-  | "bilisim"
-  | "diger";
+  | "ev-aletleri"
+  | "endustriyel"
+  | "hukuk"
+  | "cekici"
+  | "ev-temizlik"
+  | "hali-yikama"
+  | "elektrikci"
+  | "tesisatci";
 
 export interface ServiceCategory {
   id: ServiceCategoryId;

@@ -10,51 +10,63 @@ let requests: QuoteRequest[] = [];
 
 const categories: ServiceCategory[] = [
   {
-    id: "tadilat",
-    name: "Tadilat & İnşaat",
-    description: "Ofis, depo, üretim alanı tadilatı ve anahtar teslim projeler",
-    icon: "building",
+    id: "ev-aletleri",
+    name: "Ev Aletleri Tamiri",
+    description: "Beyaz eşya, küçük ev aletleri, klima ve kombi tamiri",
+    icon: "appliance",
   },
   {
-    id: "nakliye",
-    name: "Lojistik & Nakliye",
-    description: "Şehir içi / şehirler arası nakliye, depolama ve dağıtım",
-    icon: "truck",
+    id: "endustriyel",
+    name: "Endüstriyel Malzeme",
+    description: "Sanayi tipi ekipman, yedek parça ve sarf malzemeler",
+    icon: "factory",
   },
   {
-    id: "temizlik",
-    name: "Kurumsal Temizlik",
-    description: "Ofis, plaza, fabrika ve inşaat sonrası profesyonel temizlik",
-    icon: "sparkles",
+    id: "hukuk",
+    name: "Hukuk Danışmanlık",
+    description: "Sözleşme, KVKK, ticari ve iş hukuku danışmanlığı",
+    icon: "scale",
   },
   {
-    id: "beyaz-esya",
-    name: "Teknik Servis",
-    description: "Beyaz eşya, klima, jeneratör ve ekipman bakım & onarım",
-    icon: "wrench",
+    id: "cekici",
+    name: "Araç Çekici",
+    description: "Oto çekici, yol yardım ve filo kurtarma hizmetleri",
+    icon: "tow",
   },
   {
-    id: "bilisim",
-    name: "BT & Yazılım Çözümleri",
-    description: "Altyapı, yazılım geliştirme, bulut, siber güvenlik ve destek",
-    icon: "cpu",
+    id: "ev-temizlik",
+    name: "Ev Temizlik",
+    description: "Ev, villa ve daireler için profesyonel temizlik ekipleri",
+    icon: "cleaning",
   },
   {
-    id: "diger",
-    name: "Diğer Tüm Hizmetler",
-    description: "Listede olmayan özel kurumsal ihtiyaçlar için teklif alın",
-    icon: "dots",
+    id: "hali-yikama",
+    name: "Halı Yıkama",
+    description: "Yerinde veya tesis içinde profesyonel halı yıkama",
+    icon: "carpet",
+  },
+  {
+    id: "elektrikci",
+    name: "Elektrikçi",
+    description: "Elektrik arızası, tesisat ve pano bakım hizmetleri",
+    icon: "bolt",
+  },
+  {
+    id: "tesisatci",
+    name: "Tesisatçı",
+    description: "Su kaçağı, doğalgaz, kalorifer ve tesisat yenileme",
+    icon: "pipe",
   },
 ];
 
 const providers: ProviderProfile[] = [
   {
     id: "p1",
-    companyName: "ProFix Tadilat A.Ş.",
+    companyName: "ProFix Tesisat A.Ş.",
     email: "iletisim@profix.com",
     phone: "+90 212 000 00 00",
-    sectors: ["Ofis", "Perakende", "Depo"],
-    categories: ["tadilat"],
+    sectors: ["Konut", "Ofis"],
+    categories: ["tesisatci", "elektrikci"],
     city: "İstanbul",
     rating: 4.8,
     completedJobs: 240,
@@ -68,7 +80,7 @@ const providers: ProviderProfile[] = [
     email: "teklif@hizlinakliye.com",
     phone: "+90 216 000 00 00",
     sectors: ["E-ticaret", "FMCG"],
-    categories: ["nakliye"],
+    categories: ["cekici"],
     city: "Kocaeli",
     rating: 4.6,
     completedJobs: 410,
@@ -78,11 +90,11 @@ const providers: ProviderProfile[] = [
   },
   {
     id: "p3",
-    companyName: "CloudBridge Teknoloji",
-    email: "sales@cloudbridge.com",
+    companyName: "LexBridge Hukuk ve Danışmanlık",
+    email: "info@lexbridge.com",
     phone: "+90 850 000 00 00",
-    sectors: ["Finans", "SaaS", "Sağlık"],
-    categories: ["bilisim"],
+    sectors: ["Finans", "KOBİ", "Bireysel"],
+    categories: ["hukuk"],
     city: "İstanbul",
     rating: 4.9,
     completedJobs: 120,
@@ -173,11 +185,15 @@ export function getAiSuggestion(
     tags.add("acil ihtiyaç");
   }
 
-  if (input.categoryId === "bilisim") {
-    tags.add("BT projesi");
+  if (input.categoryId === "hukuk") {
+    tags.add("hukuki süreç");
   }
-  if (input.categoryId === "tadilat") {
-    tags.add("tadilat projesi");
+  if (
+    input.categoryId === "elektrikci" ||
+    input.categoryId === "tesisatci" ||
+    input.categoryId === "ev-aletleri"
+  ) {
+    tags.add("teknik servis");
   }
 
   if (input.city) {
@@ -194,17 +210,21 @@ export function getAiSuggestion(
     "Daha önce benzer bir hizmet aldınız mı?",
   ];
 
-  if (input.categoryId === "bilisim") {
+  if (input.categoryId === "hukuk") {
     questions.push(
-      "Mevcut altyapınız ve kullandığınız teknolojiler nelerdir?",
-      "Proje için başarı kriterlerini nasıl tanımlarsınız?",
+      "Hangi tür hukuki konuda destek almak istiyorsunuz?",
+      "Dosyanızda devam eden bir dava süreci var mı?",
     );
   }
 
-  if (input.categoryId === "tadilat") {
+  if (
+    input.categoryId === "elektrikci" ||
+    input.categoryId === "tesisatci" ||
+    input.categoryId === "ev-aletleri"
+  ) {
     questions.push(
-      "Toplam metrekare ve kat sayısı nedir?",
-      "Mekân kullanım amacı nedir (ofis, depo, üretim vb.)?",
+      "Cihaz veya tesisatın tipi ve markası nedir?",
+      "Sorun ne zamandır devam ediyor ve daha önce müdahale edildi mi?",
     );
   }
 
@@ -221,4 +241,3 @@ export function getAiSuggestion(
     estimatedComplexity: lengthScore,
   };
 }
-

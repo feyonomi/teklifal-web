@@ -1,41 +1,93 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { addRequest, generateRequestFromInput, getRequests } from "@/lib/data";
 import { ServiceCategoryId } from "@/domain/models";
+import { verifyAccessToken } from "@/lib/auth";
 
-export function GET() {
+function getTokenFromRequest(req: NextRequest) {
+  const header = req.headers.get("authorization");
+  if (!header) return null;
+  const [type, token] = header.split(" ");
+  if (type !== "Bearer" || !token) return null;
+  return token;
+}
+
+export function GET(req: NextRequest) {
+  const token = getTokenFromRequest(req);
+
+  if (!token) {
+    return NextResponse.json({ error: "Yetkilendirme hatası" }, { status: 401 });
+  }
+
+  try {
+    verifyAccessToken(token);
+  } catch {
+    return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });
+  }
+
   return NextResponse.json({
     data: getRequests(),
   });
 }
 
 export async function POST(req: NextRequest) {
+  const token = getTokenFromRequest(req);
+
+  if (!token) {
+    return NextResponse.json({ error: "Yetkilendirme hatası" }, { status: 401 });
+  }
+
+  let payload: { sub: string; role: string };
+  try {
+    payload = verifyAccessToken(token);
+  } catch {
+    return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });
+  }
+
+  if (payload.role !== "buyer") {
+    return NextResponse.json(
+      { error: "Yalnızca alıcılar talep oluşturabilir" },
+      { status: 403 },
+    );
+  }
+
+  const requestSchema = z.object({
+    buyerId: z.string(),
+    title: z
+      .string()
+      .min(3, { message: "title en az 3 karakter olmalıdır" }),
+    description: z
+      .string()
+      .min(10, { message: "description en az 10 karakter olmalıdır" }),
+    categoryId: z.string(),
+    city: z.string(),
+    budgetMin: z.number().int().nonnegative().optional(),
+    budgetMax: z.number().int().nonnegative().optional(),
+  });
+
   const body = await req.json().catch(() => null);
 
-  if (!body) {
+  const parsed = requestSchema.safeParse(body);
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
     return NextResponse.json(
-      { error: "Geçersiz istek gövdesi" },
+      {
+        error:
+          issue?.message ||
+          "buyerId, title, description, categoryId ve city alanları zorunludur",
+      },
       { status: 400 },
     );
   }
 
   const { buyerId, title, description, categoryId, city, budgetMin, budgetMax } =
-    body as {
-      buyerId?: string;
-      title?: string;
-      description?: string;
-      categoryId?: ServiceCategoryId;
-      city?: string;
-      budgetMin?: number;
-      budgetMax?: number;
-    };
+    parsed.data;
 
-  if (!buyerId || !title || !description || !categoryId || !city) {
+  if (buyerId !== payload.sub) {
     return NextResponse.json(
-      {
-        error:
-          "buyerId, title, description, categoryId ve city alanları zorunludur",
-      },
-      { status: 400 },
+      { error: "Talep yalnızca kendi kullanıcı kimliğinizle oluşturulabilir" },
+      { status: 403 },
     );
   }
 
@@ -43,7 +95,7 @@ export async function POST(req: NextRequest) {
     buyerId,
     title,
     description,
-    categoryId,
+    categoryId: categoryId as ServiceCategoryId,
     city,
     budgetMin,
     budgetMax,
@@ -58,4 +110,3 @@ export async function POST(req: NextRequest) {
     { status: 201 },
   );
 }
-
