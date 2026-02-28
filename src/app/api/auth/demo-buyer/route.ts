@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { createAccessToken, hashPassword, findUserByEmail } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +7,19 @@ const DEMO_PASSWORD = "demo-password";
 
 export async function GET() {
   const demoModeEnabled = process.env.DEMO_MODE === "true";
-  if (process.env.NODE_ENV === "production" && !demoModeEnabled) {
+  if (!demoModeEnabled) {
     return NextResponse.json(
       { error: "Demo endpoint is disabled in production" },
       { status: 403 },
     );
   }
+
+  const [{ prisma }, authLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+  ]);
+
+  const { createAccessToken, hashPassword, findUserByEmail } = authLib;
 
   let user = await findUserByEmail(DEMO_EMAIL);
 
