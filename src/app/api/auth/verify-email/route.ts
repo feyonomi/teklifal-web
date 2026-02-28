@@ -1,8 +1,11 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const { prisma } = await import("@/lib/prisma");
+
   const token = req.nextUrl.searchParams.get("token")?.trim();
   const email = req.nextUrl.searchParams.get("email")?.trim().toLowerCase();
 

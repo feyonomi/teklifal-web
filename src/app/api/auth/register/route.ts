@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { hashPassword, findUserByEmail } from "@/lib/auth";
-import { queueEmailVerificationEmail } from "@/lib/email-service";
-import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const [prismaLib, authLib, emailServiceLib, authRateLimitLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/email-service"),
+    import("@/lib/auth-rate-limit"),
+  ]);
+  const { prisma } = prismaLib;
+  const { hashPassword, findUserByEmail } = authLib;
+  const { queueEmailVerificationEmail } = emailServiceLib;
+  const { enforceAuthRateLimit } = authRateLimitLib;
+
   const rateLimitResponse = await enforceAuthRateLimit(req, "register");
   if (rateLimitResponse) {
     return rateLimitResponse;

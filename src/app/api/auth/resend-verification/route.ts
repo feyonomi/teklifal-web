@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { queueEmailVerificationEmail } from "@/lib/email-service";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const [prismaLib, emailServiceLib, rateLimitLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/email-service"),
+    import("@/lib/rate-limit"),
+  ]);
+  const { prisma } = prismaLib;
+  const { queueEmailVerificationEmail } = emailServiceLib;
+  const { rateLimit, getClientIp } = rateLimitLib;
+
   const schema = z.object({
     email: z.string().email({ message: "Geçerli bir e-posta adresi girin" }),
   });
