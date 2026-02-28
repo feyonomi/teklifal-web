@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { rateLimit } from "@/lib/rate-limit";
-import { queueNewOfferEmail } from "@/lib/email-service";
-import { getRequestContext, logWarn } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -17,6 +14,12 @@ export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const [{ prisma }, authLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+  ]);
+  const { verifyAccessToken } = authLib;
+
   const token = getTokenFromRequest(_req);
 
   if (!token) {
@@ -70,6 +73,18 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const [{ prisma }, authLib, rateLimitLib, emailServiceLib, loggerLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/rate-limit"),
+    import("@/lib/email-service"),
+    import("@/lib/logger"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { rateLimit } = rateLimitLib;
+  const { queueNewOfferEmail } = emailServiceLib;
+  const { getRequestContext, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   const token = getTokenFromRequest(req);
 

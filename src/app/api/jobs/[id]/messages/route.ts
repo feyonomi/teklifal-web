@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { messageEvents } from "@/lib/message-events";
-import { cache } from "@/lib/cache";
-import { rateLimit } from "@/lib/rate-limit";
-import { getRedis } from "@/lib/redis";
-import { queueNewMessageEmail } from "@/lib/email-service";
-import { publishJobMessage } from "@/lib/redis-pubsub";
-import { getRequestContext, logWarn } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -18,7 +11,14 @@ function getTokenFromRequest(req: NextRequest) {
   return token;
 }
 
-async function getJobParticipants(jobId: string) {
+async function getJobParticipants(
+  jobId: string,
+  deps: {
+    prisma: (typeof import("@/lib/prisma"))["prisma"];
+    cache: (typeof import("@/lib/cache"))["cache"];
+  },
+) {
+  const { prisma, cache } = deps;
   const cached = await cache.get<{
     job: {
       id: string;
@@ -67,6 +67,25 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const [
+    prismaLib,
+    authLib,
+    cacheLib,
+    redisLib,
+    loggerLib,
+  ] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/cache"),
+    import("@/lib/redis"),
+    import("@/lib/logger"),
+  ]);
+  const { prisma } = prismaLib;
+  const { verifyAccessToken } = authLib;
+  const { cache } = cacheLib;
+  const { getRedis } = redisLib;
+  const { getRequestContext, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   const { id: jobId } = await context.params;
   const token = getTokenFromRequest(req);
@@ -82,7 +101,7 @@ export async function GET(
     return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });
   }
 
-  const participants = await getJobParticipants(jobId);
+  const participants = await getJobParticipants(jobId, { prisma, cache });
 
   if (!participants) {
     return NextResponse.json({ error: "İş bulunamadı" }, { status: 404 });
@@ -156,6 +175,37 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const [
+    prismaLib,
+    authLib,
+    messageEventsLib,
+    cacheLib,
+    rateLimitLib,
+    redisLib,
+    emailServiceLib,
+    redisPubSubLib,
+    loggerLib,
+  ] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/message-events"),
+    import("@/lib/cache"),
+    import("@/lib/rate-limit"),
+    import("@/lib/redis"),
+    import("@/lib/email-service"),
+    import("@/lib/redis-pubsub"),
+    import("@/lib/logger"),
+  ]);
+  const { prisma } = prismaLib;
+  const { verifyAccessToken } = authLib;
+  const { messageEvents } = messageEventsLib;
+  const { cache } = cacheLib;
+  const { rateLimit } = rateLimitLib;
+  const { getRedis } = redisLib;
+  const { queueNewMessageEmail } = emailServiceLib;
+  const { publishJobMessage } = redisPubSubLib;
+  const { getRequestContext, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   const { id: jobId } = await context.params;
   const token = getTokenFromRequest(req);
@@ -171,7 +221,7 @@ export async function POST(
     return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });
   }
 
-  const participants = await getJobParticipants(jobId);
+  const participants = await getJobParticipants(jobId, { prisma, cache });
 
   if (!participants) {
     return NextResponse.json({ error: "İş bulunamadı" }, { status: 404 });

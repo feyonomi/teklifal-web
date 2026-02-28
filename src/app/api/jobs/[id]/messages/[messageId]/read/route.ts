@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -14,6 +14,12 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string; messageId: string }> },
 ) {
+  const [{ prisma }, authLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+  ]);
+  const { verifyAccessToken } = authLib;
+
   const token = getTokenFromRequest(req);
 
   if (!token) {

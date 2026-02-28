@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { getRequestContext, logWarn } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -15,6 +14,14 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string; offerId: string }> },
 ) {
+  const [{ prisma }, authLib, loggerLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/logger"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { getRequestContext, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   const token = getTokenFromRequest(req);
 

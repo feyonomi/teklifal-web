@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { cache } from "@/lib/cache";
-import { rateLimit } from "@/lib/rate-limit";
-import { getRequestContext, logWarn } from "@/lib/logger";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -15,6 +12,14 @@ function getTokenFromRequest(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const [{ prisma }, authLib, cacheLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/cache"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { cache } = cacheLib;
+
   const searchParams = req.nextUrl.searchParams;
   const status = searchParams.get("status") ?? "open";
   const city = searchParams.get("city") ?? undefined;
@@ -131,6 +136,18 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const [{ prisma }, authLib, cacheLib, rateLimitLib, loggerLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/cache"),
+    import("@/lib/rate-limit"),
+    import("@/lib/logger"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { cache } = cacheLib;
+  const { rateLimit } = rateLimitLib;
+  const { getRequestContext, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   const token = getTokenFromRequest(req);
 

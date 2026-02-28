@@ -1,10 +1,7 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { logWarn } from "@/lib/logger";
-import { getRedisPubSubClient, buildJobChannel } from "@/lib/redis-pubsub";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -17,7 +14,10 @@ function getTokenFromRequest(req: NextRequest) {
   return null;
 }
 
-async function getJobParticipants(jobId: string) {
+async function getJobParticipants(
+  jobId: string,
+  prisma: (typeof import("@/lib/prisma"))["prisma"],
+) {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
     include: {
@@ -47,6 +47,17 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  const [prismaLib, authLib, loggerLib, redisPubSubLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/logger"),
+    import("@/lib/redis-pubsub"),
+  ]);
+  const { prisma } = prismaLib;
+  const { verifyAccessToken } = authLib;
+  const { logWarn } = loggerLib;
+  const { getRedisPubSubClient, buildJobChannel } = redisPubSubLib;
+
   const { id: jobId } = await context.params;
   const token = getTokenFromRequest(req);
 
@@ -61,7 +72,7 @@ export async function GET(
     return new Response("Invalid token", { status: 401 });
   }
 
-  const participants = await getJobParticipants(jobId);
+  const participants = await getJobParticipants(jobId, prisma);
 
   if (!participants) {
     return new Response("Job not found", { status: 404 });
