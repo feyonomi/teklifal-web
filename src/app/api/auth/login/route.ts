@@ -1,19 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  createAccessToken,
-  findUserByEmail,
-  verifyPassword,
-} from "@/lib/auth";
-import { cache } from "@/lib/cache";
-import { prisma } from "@/lib/prisma";
-import { getRequestContext, logWarn } from "@/lib/logger";
-import { queueEmailVerificationEmail } from "@/lib/email-service";
-import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
+
+export const dynamic = "force-dynamic";
 
 const AUTH_COOKIE_NAME = "auth_token";
 
 export async function POST(req: NextRequest) {
+  const [
+    authLib,
+    cacheLib,
+    prismaLib,
+    loggerLib,
+    emailServiceLib,
+    authRateLimitLib,
+  ] = await Promise.all([
+    import("@/lib/auth"),
+    import("@/lib/cache"),
+    import("@/lib/prisma"),
+    import("@/lib/logger"),
+    import("@/lib/email-service"),
+    import("@/lib/auth-rate-limit"),
+  ]);
+
+  const { createAccessToken, findUserByEmail, verifyPassword } = authLib;
+  const { cache } = cacheLib;
+  const { prisma } = prismaLib;
+  const { getRequestContext, logWarn } = loggerLib;
+  const { queueEmailVerificationEmail } = emailServiceLib;
+  const { enforceAuthRateLimit } = authRateLimitLib;
+
   const requestContext = getRequestContext(req);
   const loginSchema = z.object({
     email: z
