@@ -2,18 +2,19 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
 
-const JWT_SECRET = (() => {
+function getJwtConfig() {
   const value = process.env.JWT_SECRET;
   if (!value) {
     throw new Error("JWT_SECRET environment variable must be set");
   }
-  return value;
-})();
-
-const JWT_ISSUER = process.env.JWT_ISSUER || "teklifal";
-const JWT_AUDIENCE = process.env.JWT_AUDIENCE || "teklifal-web";
-const ACCESS_TOKEN_TTL =
-  (process.env.ACCESS_TOKEN_TTL as jwt.SignOptions["expiresIn"]) || "12h";
+  return {
+    secret: value,
+    issuer: process.env.JWT_ISSUER || "teklifal",
+    audience: process.env.JWT_AUDIENCE || "teklifal-web",
+    expiresIn:
+      (process.env.ACCESS_TOKEN_TTL as jwt.SignOptions["expiresIn"]) || "12h",
+  };
+}
 
 export async function hashPassword(password: string) {
   const saltRounds = 10;
@@ -27,16 +28,17 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 export function createAccessToken(params: { userId: string; role: string }) {
+  const config = getJwtConfig();
   const token = jwt.sign(
     {
       sub: params.userId,
       role: params.role,
     },
-    JWT_SECRET,
+    config.secret,
     {
-      expiresIn: ACCESS_TOKEN_TTL,
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
+      expiresIn: config.expiresIn,
+      issuer: config.issuer,
+      audience: config.audience,
       algorithm: "HS256",
     },
   );
@@ -44,9 +46,10 @@ export function createAccessToken(params: { userId: string; role: string }) {
 }
 
 export function verifyAccessToken(token: string) {
-  const payload = jwt.verify(token, JWT_SECRET, {
-    issuer: JWT_ISSUER,
-    audience: JWT_AUDIENCE,
+  const config = getJwtConfig();
+  const payload = jwt.verify(token, config.secret, {
+    issuer: config.issuer,
+    audience: config.audience,
     algorithms: ["HS256"],
   }) as {
     sub: string;
