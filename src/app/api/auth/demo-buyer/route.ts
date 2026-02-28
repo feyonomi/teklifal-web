@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAccessToken, hashPassword, findUserByEmail } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 const DEMO_EMAIL = "demo-buyer@example.com";
 const DEMO_PASSWORD = "demo-password";
 
