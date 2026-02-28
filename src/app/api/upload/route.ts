@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/auth";
-import { rateLimit } from "@/lib/rate-limit";
-import { uploadFile } from "@/lib/storage";
-import { getRequestContext, logError, logWarn } from "@/lib/logger";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
@@ -33,6 +29,18 @@ function getTokenFromRequest(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const [{ prisma }, authLib, rateLimitLib, storageLib, loggerLib] = await Promise.all([
+    import("@/lib/prisma"),
+    import("@/lib/auth"),
+    import("@/lib/rate-limit"),
+    import("@/lib/storage"),
+    import("@/lib/logger"),
+  ]);
+  const { verifyAccessToken } = authLib;
+  const { rateLimit } = rateLimitLib;
+  const { uploadFile } = storageLib;
+  const { getRequestContext, logError, logWarn } = loggerLib;
+
   const requestContext = getRequestContext(req);
   try {
     const token = getTokenFromRequest(req);

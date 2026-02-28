@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { addRequest, generateRequestFromInput, getRequests } from "@/lib/data";
 import { ServiceCategoryId } from "@/domain/models";
-import { verifyAccessToken } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 function getTokenFromRequest(req: NextRequest) {
   const header = req.headers.get("authorization");
@@ -12,7 +12,9 @@ function getTokenFromRequest(req: NextRequest) {
   return token;
 }
 
-export function GET(req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const { getRequests } = await import("@/lib/data");
+
   const token = getTokenFromRequest(req);
 
   if (!token) {
@@ -20,6 +22,7 @@ export function GET(req: NextRequest) {
   }
 
   try {
+    const { verifyAccessToken } = await import("@/lib/auth");
     verifyAccessToken(token);
   } catch {
     return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });
@@ -31,6 +34,8 @@ export function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { addRequest, generateRequestFromInput } = await import("@/lib/data");
+
   const token = getTokenFromRequest(req);
 
   if (!token) {
@@ -39,6 +44,7 @@ export async function POST(req: NextRequest) {
 
   let payload: { sub: string; role: string };
   try {
+    const { verifyAccessToken } = await import("@/lib/auth");
     payload = verifyAccessToken(token);
   } catch {
     return NextResponse.json({ error: "Geçersiz token" }, { status: 401 });

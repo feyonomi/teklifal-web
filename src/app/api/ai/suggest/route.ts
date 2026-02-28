@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getAiSuggestion } from "@/lib/data";
 import type { ServiceCategoryId } from "@/domain/models";
+
+export const dynamic = "force-dynamic";
 
 const SERVICE_CATEGORY_IDS: ServiceCategoryId[] = [
   "ev-aletleri",
@@ -15,6 +16,8 @@ const SERVICE_CATEGORY_IDS: ServiceCategoryId[] = [
 ];
 
 export async function POST(req: NextRequest) {
+  const { getAiSuggestion } = await import("@/lib/data");
+
   const suggestSchema = z.object({
     description: z
       .string()
